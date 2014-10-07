@@ -1,0 +1,194 @@
+-- basic test programm for cop
+package.path = "./?.lua"
+require "oo.oo"
+require "cop.cop"
+oo.openpackage()
+
+Person = class(Object)
+
+-- Define members of Person
+function Person:__init(name, address, employer)
+	self.name = name
+	self.address = address
+	self.employer = employer
+end
+
+function Person:toString()
+	return "Name: " .. self.name
+end
+
+function Person:Address_toString()
+	return proceed() .. "; Contact: " .. self.address;
+end
+
+function Person:Employment_toString()
+	return proceed() .. "; Employer: " .. self.employer:toString();
+end
+
+
+
+Employer = class(Object)
+
+-- Define members of Employer
+function Employer:__init(name, address)
+	self.name = name
+	self.address = address
+end
+
+function Employer:toString()
+	return "Name: " .. self.name
+end
+
+function Employer:Address_toString()
+	return proceed() .. "; Visitors: " .. self.address;
+end
+
+
+employer = Employer:new("Springfield Nuclear Power Plant", "Springfield")
+person = Person:new("Homer Simpson", "742 Evergreen Terrace", employer)
+
+
+-- standard tests
+print(person:toString())
+
+with(Address, function()
+	print(person:toString())
+end)
+
+with(Employment, function()
+	print(person:toString())
+end)
+
+with(Address, function()
+	with(Employment, function()
+		print(person:toString())
+	end)
+end)
+
+with(Employment, function()
+	with(Address, function()
+		print(person:toString())
+	end)
+end)
+
+
+without(Address, function()
+	print(person:toString())
+end)
+
+with(Address, function()
+	without(Address, function()
+		print(person:toString())
+	end)
+end)
+
+
+with(Employment, function()
+	with(Address, function()
+		without(Employment, function()
+			print(person:toString())
+		end)
+	end)
+end)
+
+-- end of standard tests. output should be:
+--~ Name: Homer Simpson
+--~ Name: Homer Simpson; Contact: 742 Evergreen Terrace
+--~ Name: Homer Simpson; Employer: Name: Springfield Nuclear Power Plant
+--~ Name: Homer Simpson; Employer: Name: Springfield Nuclear Power Plant; Visitors: Springfield; Contact: 742 Evergreen Terrace
+--~ Name: Homer Simpson; Contact: 742 Evergreen Terrace; Employer: Name: Springfield Nuclear Power Plant; Visitors: Springfield
+--~ Name: Homer Simpson
+--~ Name: Homer Simpson
+--~ Name: Homer Simpson; Contact: 742 Evergreen Terrace
+
+
+-- multiple layers in one with statement
+print("\nNow testing multiple layers in one with statement:")
+function computeLayers()
+	return {Address, Employment}
+end
+
+with(computeLayers(), function()
+	print(person:toString())
+end)
+
+with({Address, Employment}, function()
+	print(person:toString())
+end)
+
+
+-- negative tests
+--print("\nnegative tests:")
+--~ with(NonExistingLayer, function()
+--~ 	print(person:toString())
+--~ end)
+
+--~ without(NonExistingLayer, function()
+--~ 	print(person:toString())
+--~ end)
+
+
+-- Metalua Syntax Extensions
+print("\nMetalua Syntax Extensions:")
+
+-{ block:
+	local function builder (block)
+		local layers, expr = unpack(block)
+		return +{
+			with(-{layers}, function() -{expr} end)
+		}
+	end
+
+	mlp.lexer:add{"with"}
+	mlp.expr:add {
+		"with", mlp.expr, "do", mlp.block, "end", builder = builder
+	}
+}
+
+with Address do
+	print(person:toString())
+end
+
+with Address do
+	with Employment do
+		print(person:toString())
+	end
+end
+
+with {Address, Employment} do
+	print(person:toString())
+end
+
+with computeLayers() do
+	print(person:toString())
+end
+
+
+l = {Address, Employment}
+
+with l do
+	print(person:toString())
+end
+
+
+-- TODO: Metalua syntax extension for layer definition - NOT WORKING YET
+-{ block:
+	local function builder (block)
+		local layer, expr = unpack(block)
+		return +{-{expr}}
+	end
+
+	mlp.lexer:add{"layer"}
+	mlp.expr:add {
+		"layer", mlp.id, "do", mlp.expr, "end", builder = builder
+	}
+}
+
+
+layer Foo do
+--~ 	function bar()
+--~ 		print(42)
+--~ 	end
+--~ 	a=10
+	print(42)
+end
