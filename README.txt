@@ -1,4 +1,4 @@
-Object-oriented and Context-oriented programmin in Lua
+Object-oriented and Context-oriented programming in Lua
 ======================================================
 
 CONTENT
